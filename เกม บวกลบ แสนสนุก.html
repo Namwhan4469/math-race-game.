@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Race Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Patrick Hand', cursive;
+      background-color: #fce4ec;
+      color: #880e4f;
+      text-align: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      border: 5px solid #ec407a;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    h1 {
+      font-size: 48px;
+      color: #ad1457;
+      margin-bottom: 30px;
+      text-shadow: 2px 2px 5px #fff;
+    }
+    .input-area {
+      margin: 20px;
+    }
+    input[type="text"], input[type="number"] {
+      font-size: 32px;
+      padding: 20px;
+      width: 300px;
+      border: 2px solid #ec407a;
+      border-radius: 10px;
+      outline: none;
+      text-align: center;
+      transition: border-color 0.3s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: #d81b60;
+    }
+    button {
+      padding: 20px 40px;
+      background-color: #f06292;
+      border: none;
+      color: white;
+      font-size: 24px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+    button:hover {
+      background-color: #d81b60;
+      transform: scale(1.05);
+    }
+    .game-area {
+      display: none; 
+      margin-top: 30px; 
+      background-color: #ffffff; 
+      padding: 30px;
+      border-radius: 10px; 
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    .question-box {
+      font-size: 40px;
+      margin: 20px 0;
+      color: #6a1b9a;
+    }
+    .result {
+      font-size: 30px; 
+      margin-top: 10px;
+      transition: color 0.3s, transform 0.3s; 
+    }
+    .correct {
+      color: green; 
+      transform: scale(1.1); 
+    }
+    .incorrect {
+      color: red; 
+      transform: scale(1.1); 
+    }
+    .timer, .score {
+      font-size: 28px; 
+      margin: 10px 0;
+    }
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 1000; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      background-color: rgba(0, 0, 0, 0.5); 
+      justify-content: center; 
+      align-items: center; 
+    }
+    .modal-content {
+      background-color: #fff; 
+      border-radius: 15px; 
+      padding: 20px; 
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    footer img {
+  display: block;
+  max-width: 150px; /* กำหนดความกว้างสูงสุด */
+  height: auto;
+  margin: 0 auto 10px;
+  //border-radius: 10px; /* เพิ่มความมนให้กับขอบภาพเพื่อให้ดูนุ่มนวล */
+  //box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* เพิ่มเงาให้ภาพดูเด่นขึ้น */
+}
+  </style>
+</head>
+<body>
+  <h1>🎲 เกมบวก ลบ แสนสนุก 🎮</h1>
+  <div class="input-area">
+    <input type="text" id="playerName" placeholder="ใส่ชื่อผู้เล่น" />
+    <button onclick="startGame()">เริ่มเกม</button>
+  </div>
+  
+  <div class="game-area"> 
+    <div class="level">ด่านที่: <span id="level">1</span>/200</div>
+    <div class="question-box" id="question"></div>
+    <div class="input-area">
+      <input type="number" id="answer" placeholder="กรอกคำตอบ" onkeydown="checkEnter(event)">
+      <button onclick="submitAnswer()">ตรวจสอบ</button>
+    </div>
+    <div id="result" class="result"></div>
+    <div class="timer">เวลาที่เหลือ: <span id="time">10</span> วินาที</div>
+    <div class="score">คะแนน: <span id="score">0</span></div>
+    <button onclick="endGame()">เลิกเล่น</button>
+  </div>
+
+  <div class="modal" id="scoreModal">
+    <div class="modal-content">
+      <h2 id="congratsMessage">คะแนนของคุณ</h2>
+      <p id="finalScore"></p>
+      <button onclick="closeModal()">ปิด</button>
+    </div>
+  </div>
+
+  <footer>
+    <img src="https://i.imgur.com/h5HpeSu.png" alt="ผู้พัฒนาระบบ">
+    <p>© 2024 Namwhampu 🌺</p>
+  </footer>
+  
+  <audio id="correctSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+  <audio id="incorrectSound" src="https://www.soundjay.com/button/beep-10.wav"></audio>
+
+  <script>
+    let score = 0;
+    let timeLeft = 10;
+    let level = 1;
+    let interval;
+    let currentQuestion;
+    let playerName = '';
+
+    function startGame() {
+      playerName = document.getElementById('playerName').value;
+      if (playerName) {
+        document.getElementById('result').innerText = `ยินดีต้อนรับ ${playerName}!`;
+        document.getElementById('playerName').style.display = 'none';
+        document.querySelector('button').style.display = 'none';
+        document.querySelector('.game-area').style.display = 'block'; 
+        document.querySelector('.score').style.display = 'block';
+        document.querySelector('.level').style.display = 'block';
+        document.querySelector('.timer').style.display = 'block';
+        document.getElementById("score").innerText = score;
+        generateQuestion(level);
+      } else {
+        alert("กรุณาใส่ชื่อผู้เล่น");
+      }
+    }
+
+    function startTimer() {
+      clearInterval(interval);
+      interval = setInterval(function() {
+        timeLeft--;
+        document.getElementById("time").innerText = timeLeft;
+        if (timeLeft === 0) {
+          clearInterval(interval);
+          document.getElementById("finalScore").innerText = `คะแนนของคุณคือ: ${score}`;
+          document.getElementById("scoreModal").style.display = "flex";
+          setTimeout(() => window.location.reload(), 1000);
+        }
+      }, 1000);
+    }
+
+    function generateQuestion(level) {
+      const maxNumber = level + 10;
+      let num1 = Math.floor(Math.random() * maxNumber) + 1;
+      let num2 = Math.floor(Math.random() * maxNumber) + 1;
+      const isAddition = Math.random() > 0.5;
+
+      if (!isAddition && num1 < num2) {
+        [num1, num2] = [num2, num1];
+      }
+
+      currentQuestion = isAddition ? num1 + num2 : num1 - num2;
+      document.getElementById("question").innerText = isAddition ? 
+        `เท่าไหร่: ${num1} + ${num2} = ?` : 
+        `เท่าไหร่: ${num1} - ${num2} = ?`;
+
+      timeLeft = isAddition ? 20 : 40;
+      document.getElementById("time").innerText = timeLeft;
+      startTimer();
+    }
+
+    function submitAnswer() {
+      const answer = parseInt(document.getElementById("answer").value);
+      const correctSound = document.getElementById("correctSound");
+      const incorrectSound = document.getElementById("incorrectSound");
+
+      if (answer === currentQuestion) {
+        correctSound.play();
+        score++;
+        document.getElementById("result").innerText = "ถูกต้อง 🎉!";
+                document.getElementById("result").classList.add("correct");
+        setTimeout(() => {
+          document.getElementById("result").classList.remove("correct");
+          document.getElementById("answer").value = ''; 
+          level++;
+          document.getElementById("level").innerText = level;
+          document.getElementById("score").innerText = score;
+
+          // เช็คหากเล่นครบ 100 ด่าน
+          if (level === 101) {
+            document.getElementById("congratsMessage").innerText = "สุดยอดมากๆค่ะ!☺";
+            document.getElementById("finalScore").innerText = `คุณผ่านไปได้ถึง 100 ด่าน!`;
+            document.getElementById("scoreModal").style.display = "flex";
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            generateQuestion(level);
+          }
+        }, 1000);
+      } else {
+        incorrectSound.play();
+        document.getElementById("result").innerText = "🌟ลองใหม่อีกครั้ง!🌟";
+        document.getElementById("result").classList.add("incorrect");
+        setTimeout(() => {
+          document.getElementById("result").classList.remove("incorrect");
+          document.getElementById("answer").value = ''; 
+        }, 1000);
+      }
+    }
+
+    function endGame() {
+      clearInterval(interval);
+      document.getElementById("finalScore").innerText = `คะแนนของคุณคือ: ${score}`;
+      document.getElementById("scoreModal").style.display = "flex";
+      setTimeout(() => window.location.reload(), 1000);
+    }
+
+    function closeModal() {
+      document.getElementById("scoreModal").style.display = "none";
+      resetGame();
+    }
+
+    function resetGame() {
+      score = 0;
+      level = 1;
+      timeLeft = 20;
+      clearInterval(interval);
+      document.getElementById("score").innerText = score;
+      document.getElementById("level").innerText = level;
+      document.getElementById("time").innerText = timeLeft;
+      document.getElementById('playerName').style.display = 'block';
+      document.querySelector('button').style.display = 'block';
+      document.querySelector('.game-area').style.display = 'none';
+      document.getElementById('playerName').value = '';
+      document.getElementById('result').innerText = '';
+    }
+
+    function checkEnter(event) {
+      if (event.key === "Enter") {
+        submitAnswer();
+      }
+    }
+  </script>
+</body>
+</html>
+
